@@ -2,7 +2,7 @@
 
 ![tests](https://github.com/Yassman04/lung-colon-cancer-classifier/actions/workflows/tests.yml/badge.svg)
 
-A convolutional neural network in **PyTorch** that classifies microscope images of lung and colon tissue into **five types**, three of them cancerous. It improves a 61.5% baseline to **96.4% test accuracy (96.4% macro F1)** on 3,750 held-out images.
+A convolutional neural network in **PyTorch** that classifies microscope images of lung and colon tissue into **five types**, three of them cancerous. It improves a 61.5% baseline to **96.7% test accuracy (96.7% macro F1)** on 3,750 held-out images.
 
 | Class | Meaning |
 |---|---|
@@ -21,15 +21,26 @@ Diagnosing cancer from histopathology slides is the gold standard, but it is slo
 | Model | Data | Test accuracy | Macro F1 |
 |---|---|---|---|
 | Baseline: 2 conv layers, SGD, 3 epochs | 1,000 images | 61.5% | – |
-| **Final: 3 conv layers, Adam, tuned** | **25,000 images** | **96.43%** | **96.36%** |
+| Tuned CNN, notebook version (random split, fixed 5 epochs) | 25,000 images | 96.43% | 96.36% |
+| **Tuned CNN, this package (stratified split, early stopping)** | **25,000 images** | **96.72%** | **96.72%** |
+
+The final row comes from running `python -m cancer_classifier.train --epochs 10` on a free Colab T4 GPU (about 15 minutes). The best model came from epoch 4. After that, validation loss started rising while training loss kept falling, which is the start of overfitting. Early stopping caught it and kept the epoch-4 weights.
 
 ![Per-class F1](results/per_class_f1.png)
 
-The benign tissue classes are close to perfect. The two hardest classes are **lung adenocarcinoma** and **lung squamous cell carcinoma**, the two lung cancers. They look similar under the microscope and are mostly confused with each other.
+![Confusion matrix](results/my_run/confusion_matrix.png)
 
-Full numbers are in [`results/test_metrics_full_dataset.json`](results/test_metrics_full_dataset.json).
+The confusion matrix shows **the model almost never mixes up the two organs**. No colon image was predicted as lung, and only 8 of 2,250 lung images were predicted as colon. Nearly all its mistakes are *within* an organ:
+- **Lung adenocarcinoma ↔ lung squamous cell carcinoma** (75 of 3,750 images). These two cancers look similar under the microscope and are the hardest classes (94.1% and 95.0% F1).
+- **Colon adenocarcinoma ↔ benign colon** (34 images).
 
-## How the model got from 61.5% to 96.4%
+Benign lung tissue is close to perfect (99.6% F1).
+
+![Training curves](results/my_run/training_curves.png)
+
+Full numbers: [`results/my_run/metrics.json`](results/my_run/metrics.json) (this run) and [`results/test_metrics_full_dataset.json`](results/test_metrics_full_dataset.json) (notebook version).
+
+## How the model got from 61.5% to 96.7%
 
 1. **More feature extraction.** Going from 2 to 3 conv layers (16 → 32 → 64 channels) lets the network learn patterns at several scales: texture, then clusters of cells, then tissue structure.
 2. **A stronger classifier head.** A hidden layer (16,384 → 128 → 5) combines the features before the final decision, which helps separate visually similar classes.
