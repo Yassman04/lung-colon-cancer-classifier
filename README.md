@@ -1,6 +1,6 @@
 # Lung & Colon Cancer Classifier
 
-![tests](https://github.com/Yassman04/lung-colon-cancer-classifier/actions/workflows/tests.yml/badge.svg)
+![tests](https://github.com/Yassman04/cancer-classifier/actions/workflows/tests.yml/badge.svg)
 
 A convolutional neural network in **PyTorch** that classifies microscope images of lung and colon tissue into **five types**, three of them cancerous. It improves a 61.5% baseline to **96.4% test accuracy (96.4% macro F1)** on 3,750 held-out images.
 
@@ -71,8 +71,8 @@ results/            results and charts from the full-dataset runs
 ### 1. Install
 
 ```bash
-git clone https://github.com/Yassman04/lung-colon-cancer-classifier.git
-cd lung-colon-cancer-classifier
+git clone https://github.com/Yassman04/cancer-classifier.git
+cd cancer-classifier
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
