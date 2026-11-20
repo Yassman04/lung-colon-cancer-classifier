@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cancer-classifier"
+version = "1.0.0"
+description = "PyTorch CNN that classifies lung and colon cancer histopathology images into 5 tissue types"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "scikit-learn>=1.2",
+    "matplotlib>=3.7",
+    "numpy>=1.24",
+    "pillow>=9.5",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
