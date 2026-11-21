@@ -40,6 +40,27 @@ Benign lung tissue is close to perfect (99.6% F1).
 
 Full numbers: [`results/my_run/metrics.json`](results/my_run/metrics.json) (this run) and [`results/test_metrics_full_dataset.json`](results/test_metrics_full_dataset.json) (notebook version).
 
+## What the model looks at (Grad-CAM)
+
+Accuracy says *how often* the model is right, not *why*. For a medical model that matters, because a model can score well by using shortcuts such as the background or the stain colour. So I added [Grad-CAM](https://arxiv.org/abs/1610.02391) (`gradcam.py`). It backpropagates the predicted class's score to the last conv layer, weights each of the 64 feature maps by how much it pushed the prediction, and draws the result as a heatmap. Red means the region supported the prediction.
+
+The figure shows unseen test images: one correct example per class, then four mistakes (red titles).
+
+<img src="results/my_run/gradcam.png" width="420" alt="Grad-CAM heatmaps on test images">
+
+What it shows (my reading as a non-pathologist; Grad-CAM is coarse, a 32×32 map upscaled):
+- **The model mostly looks at cell nuclei, not empty background.** In the lung examples the hot spots sit on the dark, enlarged nuclei. The white space in benign lung tissue stays cold.
+- **It seems to tell the two lung cancers apart by how the nuclei are arranged.** For squamous cell carcinoma the heat spreads across a dense sheet of nuclei. For adenocarcinoma it lands on a few large, scattered nuclei.
+- **The lung mistakes fit that pattern.** The adenocarcinoma predicted as squamous (84%) is a dense, sheet-like patch, and its heatmap looks like the squamous one. The squamous image predicted as adenocarcinoma (92%) has a few isolated dark nuclei, and that is where the heat sits. This explains why these two classes are confused most often.
+- **The colon mistakes are mostly images with little tumour in them.** One is mostly empty space and stroma, and the model is unsure (54%), which is the right behaviour.
+- **For benign colon tissue, the heat is on the tissue between the glands**, not on the round glands themselves, which is worth checking with more examples.
+
+Reproduce it with a trained model:
+
+```bash
+python -m cancer_classifier.gradcam --model results/run/best_model.pt --data data --per-class 1 --mistakes 4
+```
+
 ## How the model got from 61.5% to 96.7%
 
 1. **More feature extraction.** Going from 2 to 3 conv layers (16 → 32 → 64 channels) lets the network learn patterns at several scales: texture, then clusters of cells, then tissue structure.
@@ -71,6 +92,7 @@ src/cancer_classifier/
     train.py        CLI: train, evaluate on the test set, save model/metrics/plots
     grid_search.py  CLI: hyperparameter search, results saved to CSV
     predict.py      CLI: classify your own images with a trained model
+    gradcam.py      CLI: Grad-CAM heatmaps showing what the model looks at
     plots.py        training curves and confusion matrix
 tests/              pytest suite on a small synthetic dataset (no download needed)
 notebooks/          the original experiments, in order (baseline -> improved -> grid search -> dropout)
@@ -135,6 +157,7 @@ The tests build a tiny fake dataset on the fly, so they run in seconds without t
 - that runs can be reproduced with a seed
 - a full train → evaluate → predict run
 - the grid search
+- Grad-CAM heatmaps (shape, range and the CLI)
 
 They also run automatically on every push through GitHub Actions.
 
@@ -142,7 +165,7 @@ They also run automatically on every push through GitHub Actions.
 
 - **Possible data leakage.** LC25000 was created by augmenting about 1,250 original images up to 25,000. Near-copies of the same original can land in both the training and test sets, which may make the test score look better than it would be on genuinely new slides. The next step is to evaluate on an external dataset from a different hospital.
 - **Transfer learning.** Compare against a pretrained ResNet or EfficientNet fine-tuned on the same split.
-- **Explainability.** Add Grad-CAM heatmaps to show which parts of the tissue drive each prediction, which matters for clinical trust.
+- **Explainability.** Grad-CAM is in place. The next step is to run it over the whole test set and check, class by class, whether the model's attention matches what a pathologist would look at.
 - **Not a medical device.** This is a research and learning project and must not be used for diagnosis.
 
 ## Tech
