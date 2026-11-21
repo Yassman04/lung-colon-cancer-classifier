@@ -100,3 +100,22 @@ def test_grid_search_ranks_configs(fake_data, tmp_path):
     assert len(rows) == 2
     assert rows[0]["best_val_acc"] >= rows[1]["best_val_acc"]
     assert (tmp_path / "grid.csv").exists()
+
+
+def test_gradcam_heatmap_shape_and_range():
+    from cancer_classifier.gradcam import GradCAM
+    cam, pred, probs = GradCAM(CancerCNN(image_size=64))(torch.randn(3, 64, 64))
+    assert cam.shape == (64, 64)
+    assert 0 <= cam.min() and cam.max() <= 1
+    assert 0 <= pred < len(CLASS_NAMES)
+    assert abs(float(probs.sum()) - 1) < 1e-4
+
+
+def test_gradcam_cli_draws_figure(fake_data, tmp_path):
+    from cancer_classifier import gradcam
+    run = tmp_path / "run"
+    train.main(["--data", str(fake_data), "--out", str(run), "--epochs", "2",
+                "--image-size", "64", "--batch-size", "8"])
+    out = gradcam.main(["--model", str(run / "best_model.pt"), "--data", str(fake_data),
+                        "--image-size", "64", "--mistakes", "1", "--out", str(tmp_path / "cam.png")])
+    assert out.exists()
